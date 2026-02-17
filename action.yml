@@ -1,0 +1,41 @@
+name: chrome-webstore-publish
+description: Upload and publish a Chrome extension via Chrome Web Store API v2 using service account auth.
+
+inputs:
+  service-account-key-json:
+    description: Service account key JSON
+    required: true
+  extension-id:
+    description: Chrome extension ID
+    required: true
+  publisher-id:
+    description: Chrome Web Store publisher ID
+    required: true
+  zip-path:
+    description: Path to extension zip file
+    required: true
+  publish:
+    description: Publish immediately after upload
+    required: false
+    default: "true"
+
+outputs:
+  upload-status:
+    description: Upload API response status
+    value: ${{ steps.publish.outputs.upload-status }}
+  publish-status:
+    description: Publish API response status (set only when publish=true)
+    value: ${{ steps.publish.outputs.publish-status }}
+
+runs:
+  using: composite
+  steps:
+    - id: publish
+      shell: bash
+      env:
+        SERVICE_ACCOUNT_KEY_JSON: ${{ inputs.service-account-key-json }}
+        EXTENSION_ID: ${{ inputs.extension-id }}
+        PUBLISHER_ID: ${{ inputs.publisher-id }}
+        ZIP_PATH: ${{ inputs.zip-path }}
+        PUBLISH: ${{ inputs.publish }}
+      run: ${{ github.action_path }}/scripts/publish.sh
