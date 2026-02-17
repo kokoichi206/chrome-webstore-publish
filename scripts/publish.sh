@@ -73,7 +73,36 @@ if [[ "$UPLOAD_HTTP_CODE" -lt 200 || "$UPLOAD_HTTP_CODE" -ge 300 ]]; then
 fi
 
 UPLOAD_STATUS="$(echo "$UPLOAD_BODY" | jq -r '.uploadState // .status // empty')"
-if [[ "$UPLOAD_STATUS" != "SUCCESS" && "$UPLOAD_STATUS" != "OK" ]]; then
+if [[ "$UPLOAD_STATUS" == "IN_PROGRESS" ]]; then
+  STATUS_URL="https://chromewebstore.googleapis.com/v2/publishers/${PUBLISHER_ID}/items/${EXTENSION_ID}:fetchStatus"
+  for _ in $(seq 1 30); do
+    sleep 2
+    STATUS_RAW="$(curl -sS "$STATUS_URL" \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -w $'\n%{http_code}')"
+    STATUS_BODY="$(printf '%s' "$STATUS_RAW" | sed '$d')"
+    STATUS_HTTP_CODE="$(printf '%s' "$STATUS_RAW" | tail -n1)"
+
+    if [[ "$STATUS_HTTP_CODE" -lt 200 || "$STATUS_HTTP_CODE" -ge 300 ]]; then
+      echo "fetchStatus failed (http $STATUS_HTTP_CODE)" >&2
+      echo "$STATUS_BODY" >&2
+      exit 1
+    fi
+
+    UPLOAD_STATUS="$(echo "$STATUS_BODY" | jq -r '.lastAsyncUploadState // empty')"
+    if [[ "$UPLOAD_STATUS" == "SUCCEEDED" ]]; then
+      break
+    fi
+
+    if [[ "$UPLOAD_STATUS" == "FAILED" || "$UPLOAD_STATUS" == "NOT_FOUND" ]]; then
+      echo "upload failed (status $UPLOAD_STATUS)" >&2
+      echo "$STATUS_BODY" >&2
+      exit 1
+    fi
+  done
+fi
+
+if [[ "$UPLOAD_STATUS" != "SUCCEEDED" && "$UPLOAD_STATUS" != "SUCCESS" && "$UPLOAD_STATUS" != "OK" ]]; then
   echo "upload failed (status $UPLOAD_STATUS)" >&2
   echo "$UPLOAD_BODY" >&2
   exit 1
@@ -97,7 +126,7 @@ if [[ "$PUBLISH" == "true" ]]; then
     exit 1
   fi
 
-  PUBLISH_STATUS="$(echo "$PUBLISH_BODY" | jq -r '.status // empty')"
+  PUBLISH_STATUS="$(echo "$PUBLISH_BODY" | jq -r '.state // .status // empty')"
   if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     echo "publish-status=$PUBLISH_STATUS" >> "$GITHUB_OUTPUT"
   fi
