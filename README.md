@@ -1,61 +1,61 @@
 # chrome-webstore-publish
 
-Chrome Web Store API v2 とサービスアカウント認証を使って、Chrome 拡張機能の zip アップロードと公開を行う GitHub Composite Action です。
+A GitHub Composite Action to upload and publish a Chrome extension zip using the Chrome Web Store API v2 with service account authentication.
 
-## 背景
+## Background
 
-- 本 Action は **Chrome Web Store API v2** を利用します。
-- Chrome Web Store API v1 は **2026年10月15日** に廃止予定です。
+- This action uses **Chrome Web Store API v2**.
+- Chrome Web Store API v1 is scheduled to be deprecated on **October 15, 2026**.
 
-## 入力パラメータ
+## Inputs
 
-| 名前 | 必須 | デフォルト | 説明 |
+| Name | Required | Default | Description |
 | --- | --- | --- | --- |
-| `service-account-key-json` | yes | - | サービスアカウント JSON キー |
-| `extension-id` | yes | - | Chrome 拡張機能 ID |
-| `publisher-id` | yes | - | Chrome Web Store パブリッシャー ID |
-| `zip-path` | yes | - | アップロードする zip ファイルパス |
-| `publish` | no | `"true"` | アップロード後に公開するか |
+| `service-account-key-json` | yes | - | Service account JSON key |
+| `extension-id` | yes | - | Chrome extension ID |
+| `publisher-id` | yes | - | Chrome Web Store publisher ID |
+| `zip-path` | yes | - | Path to the extension zip file |
+| `publish` | no | `"true"` | Whether to publish after upload |
 
-## 出力パラメータ
+## Outputs
 
-| 名前 | 説明 |
+| Name | Description |
 | --- | --- |
-| `upload-status` | upload API のレスポンスステータス |
-| `publish-status` | publish API のレスポンスステータス（`publish=true` の場合のみ） |
+| `upload-status` | Upload API response status |
+| `publish-status` | Publish API response status (only when `publish=true`) |
 
-## 事前準備
+## Prerequisites
 
-### 1. Chrome Web Store 側の前提
+### 1. Chrome Web Store requirements
 
-- 対象の拡張機能を Chrome Web Store で一度手動公開しておく
+- Your extension must have been published manually at least once in Chrome Web Store.
 
-### 2. Google Cloud Console でサービスアカウントを作成
+### 2. Create a service account in Google Cloud Console
 
-1. Google Cloud プロジェクトを作成
-2. 「API とサービス」で **Chrome Web Store API** を有効化
-3. サービスアカウントを作成
-4. サービスアカウントの JSON キーを発行して取得
+1. Create a Google Cloud project.
+2. Enable **Chrome Web Store API** under APIs & Services.
+3. Create a service account.
+4. Generate and download a JSON key for the service account.
 
-### 3. Developer Dashboard でサービスアカウントを追加
+### 3. Add the service account in Developer Dashboard
 
-1. [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/) を開く
-2. Account セクションを開く
-3. サービスアカウントの `client_email` を追加
+1. Open [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
+2. Go to the `Account` section.
+3. Add the service account `client_email`.
 
-### 4. パブリッシャー ID を確認
+### 4. Find your publisher ID
 
-1. Developer Dashboard の Account セクションを開く
-2. 表示される Publisher ID を控える
+1. Open the `Account` section in Developer Dashboard.
+2. Copy the displayed Publisher ID.
 
-### 5. GitHub Secrets を設定
+### 5. Configure GitHub Secrets
 
-1. 対象リポジトリの `Settings` -> `Secrets and variables` -> `Actions`
-2. `GOOGLE_SA_KEY_JSON` などの名前で JSON 全体を保存
+1. Go to your repository: `Settings` -> `Secrets and variables` -> `Actions`.
+2. Add a secret such as `GOOGLE_SA_KEY_JSON` and paste the full JSON key.
 
-## 使い方
+## Usage
 
-### 最小構成
+### Minimal example
 
 ```yaml
 name: release
@@ -78,7 +78,7 @@ jobs:
           zip-path: extension.zip
 ```
 
-### フルオプション
+### Full options example
 
 ```yaml
 name: release
@@ -108,14 +108,7 @@ jobs:
           echo "publish-status=${{ steps.cws.outputs.publish-status }}"
 ```
 
-## 実装メモ
-
-- `scripts/publish.sh` は `set -euo pipefail` を使用
-- サービスアカウントの `private_key` は一時ファイルに書き出し、`trap` で削除
-- アクセストークンは `::add-mask::` でマスク
-- Upload/Publish の失敗時はレスポンス内容を標準エラーに出力して終了
-
-## 参考リンク
+## References
 
 - [Chrome Web Store API Reference (REST)](https://developer.chrome.com/docs/webstore/api/reference/rest)
 - [Use service accounts](https://developer.chrome.com/docs/webstore/service-accounts)
